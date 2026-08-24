@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Interactive research lab relationship map">
+<title>Sandikala Lab — Research Map</title>
+<style>
+:root{
+  --bg:#050505;
+  --fg:#f2f2ee;
+  --muted:#76766f;
+  --yellow:#ffe13b;
+  --yellow-soft:rgba(255,225,59,.24);
+  --yellow-hover:rgba(255,225,59,.72);
+  --border:rgba(255,225,59,.14);
+  --sans:Arial,Helvetica,sans-serif;
+  --serif:Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg)}
+body{font-family:var(--sans)}
+button,input{font:inherit;color:inherit}
+.app{min-height:100vh;background:var(--bg);display:grid;grid-template-rows:auto minmax(560px,1fr) 46px}
+.masthead{min-height:104px;padding:21px clamp(18px,2.4vw,42px) 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:24px;background:var(--bg);position:relative;z-index:10}
+.brand{color:var(--fg);text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.055em;display:inline-flex;gap:8px;align-items:center}
+.brand-grid{font-size:17px;line-height:1}
+.tagline{margin:10px 0 0;font:italic 12px/1.25 var(--serif);color:#e4e4df}
+.tools{display:flex;align-items:center;gap:22px}
+.search{width:145px;border-bottom:1px solid #2b2b28;display:flex;gap:7px;align-items:center;color:var(--muted)}
+.search input{width:100%;padding:0 0 7px;border:0;outline:0;background:transparent;font-size:11px}
+.search input::placeholder{color:var(--muted)}
+.text-btn{padding:0 0 7px;border:0;border-bottom:1px solid transparent;background:transparent;cursor:pointer;font-size:11px}
+.text-btn:hover,.text-btn:focus-visible{outline:none;border-color:var(--fg)}
+.stage{position:relative;overflow:hidden;min-height:560px;background:radial-gradient(circle at 50% 77%,rgba(255,225,59,.018),transparent 42%),var(--bg)}
+#mapSvg{display:block;width:100%;height:100%;min-height:560px;overflow:visible}
+.semiguide{fill:none;stroke:rgba(255,255,255,.12);stroke-width:.8;vector-effect:non-scaling-stroke}
+.project-line{stroke:rgba(255,225,59,.22);stroke-width:1;vector-effect:non-scaling-stroke}
+.project-tick{stroke:rgba(255,225,59,.42);stroke-width:1;vector-effect:non-scaling-stroke}
+.relation{fill:none;stroke:var(--yellow-soft);stroke-width:.85;opacity:1;vector-effect:non-scaling-stroke;transition:stroke .13s,stroke-width .13s,opacity .13s,filter .13s}
+.relation.hot{stroke:var(--yellow-hover);stroke-width:1.2}
+.relation.selected{stroke:var(--yellow);stroke-width:1.85;filter:drop-shadow(0 0 2px rgba(255,225,59,.42))}
+.relation.dim{opacity:.055}
+.node{cursor:pointer;outline:none}
+.node .dot{fill:#8a8a84;transition:fill .13s,r .13s,opacity .13s}
+.node text{fill:#c8c8c2;transition:fill .13s,opacity .13s,filter .13s}
+.node.researcher text{font:10.5px/1 var(--sans);letter-spacing:.008em}
+.node.project text{font:12px/1.15 var(--serif)}
+.node:hover text,.node:focus text,.node.related text{fill:#fff}
+.node.active text{fill:var(--yellow);filter:drop-shadow(0 0 4px rgba(255,225,59,.3))}
+.node.active .dot{fill:var(--yellow);r:3}
+.node.related .dot{fill:#deded7}
+.node.dim text,.node.dim .dot{opacity:.16}
+.axis-label{fill:#6e6e68;font:8.5px/1 var(--sans);letter-spacing:.13em}
+.center-note{fill:#50504b;font:7px/1 var(--sans);letter-spacing:.18em;text-anchor:middle}
+.footer{padding:0 clamp(18px,2.4vw,42px);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:9px;letter-spacing:.03em;background:var(--bg);position:relative;z-index:10}
+.detail{position:fixed;z-index:50;top:0;right:0;width:min(420px,92vw);height:100vh;padding:30px 34px 40px;background:#0d0d0c;border-left:1px solid rgba(255,225,59,.33);transform:translateX(102%);transition:transform .22s ease;overflow:auto}
+.detail.open{transform:translateX(0)}
+.close{position:absolute;right:24px;top:18px;border:0;background:transparent;font-size:29px;font-weight:200;cursor:pointer}
+.kicker{margin:62px 0 13px;color:var(--muted);font-size:9px;letter-spacing:.13em;text-transform:uppercase}
+.detail h2{margin:0;max-width:320px;font:400 clamp(30px,4vw,48px)/.98 var(--serif);letter-spacing:-.025em}
+.detail-role{color:var(--muted);font-size:11px;margin:13px 0 0}
+.detail-body{font:15px/1.6 var(--serif);color:#d2d2cd;margin:32px 0 0}
+.detail-meta{margin-top:30px;padding-top:15px;border-top:1px solid rgba(255,225,59,.2);font-size:10px}
+.meta-row{display:grid;grid-template-columns:78px 1fr;gap:10px;padding:5px 0;line-height:1.45}
+.meta-row b{font-weight:400;color:var(--muted)}
+.project-link{display:inline-block;color:var(--fg);text-decoration:none;border-bottom:1px solid var(--fg);padding-bottom:3px;margin-top:25px;font-size:10px}
+.overlay{position:fixed;z-index:60;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;padding:24px}
+.overlay.open{display:flex}
+.about-card{position:relative;width:min(690px,100%);background:#0b0b0a;border:1px solid rgba(255,225,59,.32);padding:clamp(32px,5vw,60px)}
+.about-card h2{margin:0;font:400 clamp(30px,5vw,52px)/1 var(--serif)}
+.about-card p{max-width:570px;font:15px/1.6 var(--serif);color:#d2d2cd}
+.about-card code{color:var(--fg)}
+.error-badge{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-size:9px;color:#a3a39d;display:none;z-index:3}
+@media(max-width:760px){
+  .app{grid-template-rows:auto 650px 44px}.masthead{min-height:92px;padding:17px 18px 13px}.tagline{max-width:230px}.search{display:none}.tools{gap:12px}.stage{overflow-x:auto;overflow-y:hidden}.stage svg{min-width:920px}.footer{padding:0 18px}.footer span:last-child{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="masthead">
+    <div>
+      <a class="brand" href="./"><span>SANDIKALA LAB</span><span class="brand-grid">⠿</span></a>
+      <p class="tagline">visualizing the lab's ongoing projects</p>
+    </div>
+    <div class="tools">
+      <label class="search"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="search" autocomplete="off" aria-label="Search researchers and projects"></label>
+      <button id="aboutButton" class="text-btn" type="button">about</button>
+    </div>
+  </header>
+
+  <main id="stage" class="stage">
+    <div id="errorBadge" class="error-badge">using embedded sample data</div>
+    <svg id="mapSvg" role="img" aria-label="Researchers arranged on a semicircle, connected to projects on a straight baseline"></svg>
+  </main>
+
+  <footer class="footer"><span id="statusText">hover to explore relationships</span><span id="countText"></span></footer>
+</div>
+
+<aside id="detailPanel" class="detail" aria-hidden="true">
+  <button id="detailClose" class="close" type="button" aria-label="Close">×</button>
+  <p id="detailType" class="kicker"></p>
+  <h2 id="detailTitle"></h2>
+  <p id="detailRole" class="detail-role"></p>
+  <p id="detailBody" class="detail-body"></p>
+  <div id="detailMeta" class="detail-meta"></div>
+  <a id="detailLink" class="project-link" href="#" target="_blank" rel="noopener" hidden>open project ↗</a>
+</aside>
+
+<div id="aboutOverlay" class="overlay" aria-hidden="true">
+  <section class="about-card" role="dialog" aria-modal="true" aria-labelledby="aboutHeading">
+    <button id="aboutClose" class="close" type="button" aria-label="Close">×</button>
+    <p class="kicker">ABOUT</p>
+    <h2 id="aboutHeading">People around the arc. Projects on the baseline.</h2>
+    <p>Researchers are distributed around one semicircular arc. Projects sit on the straight diameter below it. Yellow curves show the research relationships.</p>
+    <p>Edit <code>data/lab.json</code> to replace the sample content. This page uses no database and no build step.</p>
+  </section>
+</div>
+
+<script id="fallbackData" type="application/json">
+{
+  "leadership":[
+    {"id":"lead-01","name":"Lab Director","role":"Director","bio":"Replace this record with the lab director or principal investigator.","projects":["urban-water-dt","smart-waste","mobility-lab"]},
+    {"id":"lead-02","name":"Research Lead","role":"Research & Design","bio":"Leadership may be connected to one or many projects.","projects":["smart-waste","sensing-city"]}
+  ],
+  "researchers":[
+    {"id":"res-01","name":"Researcher A","role":"Digital Twin","bio":"Research interests, affiliation, short biography, or expertise can be written here.","projects":["urban-water-dt","sensing-city"]},
+    {"id":"res-02","name":"Researcher B","role":"Urban Analytics","bio":"This file is intentionally simple so it can be maintained directly on GitHub.","projects":["mobility-lab","sensing-city"]},
+    {"id":"res-03","name":"Researcher C","role":"Circular Economy","bio":"Add as many researchers as required.","projects":["smart-waste"]},
+    {"id":"res-04","name":"Researcher D","role":"IoT & Sensing","bio":"People may participate in multiple projects.","projects":["urban-water-dt","sensing-city"]},
+    {"id":"res-05","name":"Researcher E","role":"Mobility","bio":"Use the projects array to define the network relationship.","projects":["mobility-lab"]},
+    {"id":"res-06","name":"Researcher F","role":"Data Visualization","bio":"Hovering this researcher highlights only connected projects.","projects":["urban-water-dt","smart-waste","mobility-lab","sensing-city"]}
+  ],
+  "projects":[
+    {"id":"urban-water-dt","name":"Urban Water Digital Twin","year":2026,"status":"ongoing","summary":"A sample project record for a digital-twin research programme.","tags":["Digital Twin","IoT","Urban Systems"],"url":""},
+    {"id":"smart-waste","name":"Smart Waste","year":2026,"status":"ongoing","summary":"A sample circular-economy and smart waste research project.","tags":["Circular Economy","Waste","Smart City"],"url":""},
+    {"id":"mobility-lab","name":"Urban Mobility Lab","year":2026,"status":"ongoing","summary":"A sample project exploring data-driven urban mobility.","tags":["Mobility","Transport","Data"],"url":""},
+    {"id":"sensing-city","name":"Sensing City","year":2026,"status":"ongoing","summary":"A sample sensing project connecting field devices, urban data, and visualization.","tags":["Sensors","Urban Analytics","Visualization"],"url":""}
+  ]
+}
+</script>
+
+<script>
+(function(){
+'use strict';
+var svg=document.getElementById('mapSvg');
+var stage=document.getElementById('stage');
+var search=document.getElementById('searchInput');
+var statusText=document.getElementById('statusText');
+var countText=document.getElementById('countText');
+var errorBadge=document.getElementById('errorBadge');
+var detail=document.getElementById('detailPanel');
+var detailType=document.getElementById('detailType');
+var detailTitle=document.getElementById('detailTitle');
+var detailRole=document.getElementById('detailRole');
+var detailBody=document.getElementById('detailBody');
+var detailMeta=document.getElementById('detailMeta');
+var detailLink=document.getElementById('detailLink');
+var detailClose=document.getElementById('detailClose');
+var about=document.getElementById('aboutOverlay');
+var NS='http://www.w3.org/2000/svg';
+var state={data:null,hover:null,active:null,query:'',nodes:[],links:[]};
+
+function el(name,attrs){var n=document.createElementNS(NS,name);if(attrs){Object.keys(attrs).forEach(function(k){n.setAttribute(k,attrs[k]);});}return n;}
+function textNode(parent,x,y,text,cls,anchor){var t=el('text',{x:x,y:y,'class':cls||'','text-anchor':anchor||'middle'});t.textContent=text;parent.appendChild(t);return t;}
+function polar(cx,cy,r,deg){var a=deg*Math.PI/180;return{x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r};}
+function arcD(cx,cy,r,a0,a1){var p0=polar(cx,cy,r,a0),p1=polar(cx,cy,r,a1);return'M'+p0.x.toFixed(1)+','+p0.y.toFixed(1)+' A'+r.toFixed(1)+','+r.toFixed(1)+' 0 0 1 '+p1.x.toFixed(1)+','+p1.y.toFixed(1);}
+function projectById(id){return state.data.projects.find(function(p){return String(p.id)===String(id);})||null;}
+function personById(id){return state.data.researchers.find(function(p){return String(p.id)===String(id);})||null;}
+function norm(raw){
+  raw=raw||{};
+  var projects=(raw.projects||[]).map(function(p){return{id:String(p.id),name:p.name||'Untitled project',year:p.year||'',status:p.status||'',summary:p.summary||'',tags:Array.isArray(p.tags)?p.tags:[],url:p.url||''};});
+  var valid={};projects.forEach(function(p){valid[p.id]=true;});
+  var researchers=(raw.researchers||[]).map(function(p){return{id:String(p.id),name:p.name||'Unnamed',role:p.role||'',bio:p.bio||'',projects:(Array.isArray(p.projects)?p.projects:[]).map(String).filter(function(id){return valid[id];})};});
+  return{researchers:researchers,projects:projects};
+}
+function searchable(item,type){var parts=type==='project'?[item.name,item.year,item.status,item.summary].concat(item.tags||[]):[item.name,item.role,item.bio];return parts.join(' ').toLowerCase();}
+function visibleData(){
+  var q=state.query.trim().toLowerCase();
+  if(!q)return{researchers:state.data.researchers.slice(),projects:state.data.projects.slice()};
+  var people={},projects={};
+  state.data.projects.forEach(function(p){if(searchable(p,'project').indexOf(q)>=0)projects[p.id]=true;});
+  state.data.researchers.forEach(function(r){if(searchable(r,'person').indexOf(q)>=0)people[r.id]=true;});
+  state.data.researchers.forEach(function(r){
+    if(people[r.id])r.projects.forEach(function(pid){projects[pid]=true;});
+    r.projects.forEach(function(pid){if(projects[pid])people[r.id]=true;});
+  });
+  return{
+    researchers:state.data.researchers.filter(function(r){return people[r.id];}),
+    projects:state.data.projects.filter(function(p){return projects[p.id];})
+  };
+}
+function angleFor(i,n,a0,a1){if(n<=1)return(a0+a1)/2;return a0+(a1-a0)*(i/(n-1));}
+
+function addResearcherNode(group,item,cx,cy,r,deg){
+  var p=polar(cx,cy,r,deg);
+  var g=el('g',{'class':'node researcher',tabindex:'0','data-id':item.id,'data-type':'person'});
+  g.setAttribute('transform','translate('+p.x.toFixed(1)+' '+p.y.toFixed(1)+')');
+  g.appendChild(el('circle',{cx:0,cy:0,r:2,'class':'dot'}));
+  var rot=deg+90;if(rot>180)rot-=360;
+  var left=deg<270,right=deg>270;
+  var tx=left?-9:(right?9:0);
+  var anchor=left?'end':(right?'start':'middle');
+  var t=textNode(g,tx,3,item.name,'',anchor);
+  t.setAttribute('transform','rotate('+rot+' '+tx+' 3)');
+  bindNode(g,'person',item.id);
+  group.appendChild(g);
+  state.nodes.push({el:g,id:item.id,type:'person',item:item});
+  return p;
+}
+
+function addProjectNode(group,item,x,y){
+  var g=el('g',{'class':'node project',tabindex:'0','data-id':item.id,'data-type':'project'});
+  g.setAttribute('transform','translate('+x.toFixed(1)+' '+y.toFixed(1)+')');
+  g.appendChild(el('line',{x1:0,y1:-6,x2:0,y2:6,'class':'project-tick'}));
+  g.appendChild(el('circle',{cx:0,cy:0,r:2.1,'class':'dot'}));
+  var t=textNode(g,0,25,item.name,'','middle');
+  if(item.name.length>22){
+    var words=item.name.split(' '),line1='',line2='';
+    words.forEach(function(w){if((line1+' '+w).trim().length<=18&&!line2)line1=(line1+' '+w).trim();else line2=(line2+' '+w).trim();});
+    t.textContent='';
+    var a=el('tspan',{x:0,dy:0});a.textContent=line1;t.appendChild(a);
+    if(line2){var b=el('tspan',{x:0,dy:14});b.textContent=line2;t.appendChild(b);}
+  }
+  bindNode(g,'project',item.id);
+  group.appendChild(g);
+  state.nodes.push({el:g,id:item.id,type:'project',item:item});
+  return{x:x,y:y};
+}
+
+function bindNode(g,type,id){
+  g.addEventListener('mouseenter',function(){state.hover={type:type,id:id};updateHighlight();});
+  g.addEventListener('mouseleave',function(){state.hover=null;updateHighlight();});
+  g.addEventListener('focus',function(){state.hover={type:type,id:id};updateHighlight();});
+  g.addEventListener('blur',function(){state.hover=null;updateHighlight();});
+  g.addEventListener('click',function(){selectItem(type,id);});
+}
+
+function related(ref){
+  var people={},projects={};
+  if(!ref)return{people:people,projects:projects};
+  if(ref.type==='person'){
+    var r=personById(ref.id);if(r){people[r.id]=true;r.projects.forEach(function(pid){projects[pid]=true;});}
+  }else{
+    projects[ref.id]=true;state.data.researchers.forEach(function(r){if(r.projects.indexOf(ref.id)>=0)people[r.id]=true;});
+  }
+  return{people:people,projects:projects};
+}
+function currentRef(){return state.hover||state.active;}
+function updateHighlight(){
+  var ref=currentRef(),rel=related(ref);
+  state.nodes.forEach(function(n){
+    var isActive=!!ref&&ref.type===n.type&&ref.id===n.id;
+    var isRel=!!ref&&(n.type==='person'?rel.people[n.id]:rel.projects[n.id]);
+    n.el.classList.toggle('active',isActive);
+    n.el.classList.toggle('related',!!isRel&&!isActive);
+    n.el.classList.toggle('dim',!!ref&&!isRel&&!isActive);
+  });
+  state.links.forEach(function(l){
+    var hot=!!ref&&((ref.type==='person'&&l.person===ref.id)||(ref.type==='project'&&l.project===ref.id));
+    var selected=!!state.active&&!state.hover&&((state.active.type==='person'&&l.person===state.active.id)||(state.active.type==='project'&&l.project===state.active.id));
+    l.el.classList.toggle('hot',hot&&!selected);
+    l.el.classList.toggle('selected',selected);
+    l.el.classList.toggle('dim',!!ref&&!hot);
+  });
+  if(state.hover){
+    var it=state.hover.type==='person'?personById(state.hover.id):projectById(state.hover.id);
+    if(it){
+      if(state.hover.type==='person')statusText.textContent=it.name+' · '+it.projects.length+' project'+(it.projects.length===1?'':'s');
+      else{var c=state.data.researchers.filter(function(r){return r.projects.indexOf(it.id)>=0;}).length;statusText.textContent=it.name+' · '+c+' researcher'+(c===1?'':'s');}
+    }
+  }else if(state.active)statusText.textContent='selection pinned · click again or press esc to clear';
+  else statusText.textContent='hover to explore relationships';
+}
+
+function draw(){
+  if(!state.data)return;
+  var box=stage.getBoundingClientRect();
+  var w=Math.max(920,Math.round(box.width));
+  var h=Math.max(560,Math.round(box.height));
+  svg.setAttribute('viewBox','0 0 '+w+' '+h);
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  state.links=[];state.nodes=[];
+  var v=visibleData();
+
+  var cx=w*.50;
+  var baselineY=h*.78;
+  var radius=Math.min(w*.38,h*.56);
+  var leftX=cx-radius,rightX=cx+radius;
+
+  var structure=el('g');
+  structure.appendChild(el('path',{d:arcD(cx,baselineY,radius,180,360),'class':'semiguide'}));
+  structure.appendChild(el('line',{x1:leftX,y1:baselineY,x2:rightX,y2:baselineY,'class':'project-line'}));
+  svg.appendChild(structure);
+  textNode(svg,leftX,baselineY+72,'PROJECTS','axis-label','start');
+  textNode(svg,cx,baselineY-radius-26,'RESEARCHERS','axis-label','middle');
+  textNode(svg,cx,baselineY-11,'RELATIONSHIPS','center-note','middle');
+
+  var linkGroup=el('g');
+  var nodeGroup=el('g');
+  svg.appendChild(linkGroup);svg.appendChild(nodeGroup);
+  var peoplePoints={},projectPoints={};
+
+  var a0=198,a1=342;
+  v.researchers.forEach(function(item,i){
+    var deg=angleFor(i,v.researchers.length,a0,a1);
+    peoplePoints[item.id]=addResearcherNode(nodeGroup,item,cx,baselineY,radius,deg);
+  });
+
+  var projectInset=Math.min(54,radius*.08);
+  var usableLeft=leftX+projectInset,usableRight=rightX-projectInset;
+  v.projects.forEach(function(item,i){
+    var x=v.projects.length<=1?cx:usableLeft+(usableRight-usableLeft)*(i/(v.projects.length-1));
+    projectPoints[item.id]=addProjectNode(nodeGroup,item,x,baselineY);
+  });
+
+  state.data.researchers.forEach(function(person){
+    var a=peoplePoints[person.id];if(!a)return;
+    person.projects.forEach(function(pid){
+      var b=projectPoints[pid];if(!b)return;
+      var radialPull=.44;
+      var c1x=a.x+(cx-a.x)*radialPull;
+      var c1y=a.y+(baselineY-a.y)*radialPull;
+      var c2x=b.x;
+      var c2y=baselineY-radius*.26;
+      var d='M'+a.x.toFixed(1)+','+a.y.toFixed(1)+' C'+c1x.toFixed(1)+','+c1y.toFixed(1)+' '+c2x.toFixed(1)+','+c2y.toFixed(1)+' '+b.x.toFixed(1)+','+b.y.toFixed(1);
+      var path=el('path',{d:d,'class':'relation','data-person':person.id,'data-project':pid});
+      linkGroup.appendChild(path);state.links.push({el:path,person:person.id,project:pid});
+    });
+  });
+
+  svg.appendChild(nodeGroup);
+  countText.textContent=state.data.researchers.length+' researchers · '+state.data.projects.length+' projects';
+  updateHighlight();
+}
+
+function metaRow(k,v){var row=document.createElement('div');row.className='meta-row';var b=document.createElement('b'),s=document.createElement('span');b.textContent=k;s.textContent=Array.isArray(v)?v.join(', '):String(v||'');row.appendChild(b);row.appendChild(s);return row;}
+function openDetail(type,id){
+  var item=type==='person'?personById(id):projectById(id);if(!item)return;
+  detailType.textContent=type==='person'?'Researcher':'Project';detailTitle.textContent=item.name;
+  detailRole.textContent=type==='person'?item.role:[item.year,item.status].filter(Boolean).join(' · ');
+  detailBody.textContent=type==='person'?(item.bio||''):(item.summary||'');
+  while(detailMeta.firstChild)detailMeta.removeChild(detailMeta.firstChild);
+  if(type==='person'){
+    var names=item.projects.map(function(pid){var p=projectById(pid);return p?p.name:null;}).filter(Boolean);detailMeta.appendChild(metaRow('projects',names));detailLink.hidden=true;
+  }else{
+    var team=state.data.researchers.filter(function(r){return r.projects.indexOf(id)>=0;}).map(function(r){return r.name;});
+    detailMeta.appendChild(metaRow('year',item.year));detailMeta.appendChild(metaRow('status',item.status));detailMeta.appendChild(metaRow('researchers',team));detailMeta.appendChild(metaRow('tags',item.tags));
+    if(item.url){detailLink.href=item.url;detailLink.hidden=false;}else detailLink.hidden=true;
+  }
+  detail.classList.add('open');detail.setAttribute('aria-hidden','false');
+}
+function closeDetail(){detail.classList.remove('open');detail.setAttribute('aria-hidden','true');}
+function selectItem(type,id){
+  if(state.active&&state.active.type===type&&state.active.id===id){state.active=null;closeDetail();history.replaceState(null,'',location.pathname+location.search);}
+  else{state.active={type:type,id:id};openDetail(type,id);history.replaceState(null,'','#'+type+'='+encodeURIComponent(id));}
+  updateHighlight();
+}
+function readHash(){var m=location.hash.match(/^#(person|project)=([^&]+)$/);if(!m)return;var id=decodeURIComponent(m[2]);if((m[1]==='person'&&personById(id))||(m[1]==='project'&&projectById(id))){state.active={type:m[1],id:id};openDetail(m[1],id);updateHighlight();}}
+function setData(raw){state.data=norm(raw);draw();readHash();}
+
+var fallback=JSON.parse(document.getElementById('fallbackData').textContent);setData(fallback);
+fetch('data/lab.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){errorBadge.style.display='none';setData(data);}).catch(function(){errorBadge.style.display='block';});
+search.addEventListener('input',function(){state.query=search.value;draw();});
+detailClose.addEventListener('click',function(){state.active=null;closeDetail();history.replaceState(null,'',location.pathname+location.search);updateHighlight();});
+document.getElementById('aboutButton').addEventListener('click',function(){about.classList.add('open');about.setAttribute('aria-hidden','false');});
+document.getElementById('aboutClose').addEventListener('click',function(){about.classList.remove('open');about.setAttribute('aria-hidden','true');});
+about.addEventListener('click',function(e){if(e.target===about){about.classList.remove('open');about.setAttribute('aria-hidden','true');}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){if(about.classList.contains('open')){about.classList.remove('open');about.setAttribute('aria-hidden','true');return;}state.active=null;state.hover=null;closeDetail();history.replaceState(null,'',location.pathname+location.search);updateHighlight();}});
+var resizeTimer=null;window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(draw,80);});
+})();
+</script>
+</body>
+</html>
