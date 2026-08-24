@@ -1,0 +1,100 @@
+{
+  "leadership": [
+    {
+      "id": "lead-01",
+      "name": "Lab Director",
+      "role": "Director",
+      "bio": "Replace this record with the lab director or principal investigator.",
+      "projects": ["urban-water-dt", "smart-waste", "mobility-lab"]
+    },
+    {
+      "id": "lead-02",
+      "name": "Research Lead",
+      "role": "Research & Design",
+      "bio": "A leadership record can be connected to one or many projects.",
+      "projects": ["smart-waste", "sensing-city"]
+    }
+  ],
+  "researchers": [
+    {
+      "id": "res-01",
+      "name": "Researcher A",
+      "role": "Digital Twin",
+      "bio": "Research interests, affiliation, short biography, or expertise can be written here.",
+      "projects": ["urban-water-dt", "sensing-city"]
+    },
+    {
+      "id": "res-02",
+      "name": "Researcher B",
+      "role": "Urban Analytics",
+      "bio": "This file is intentionally simple so it can be maintained directly on GitHub.",
+      "projects": ["mobility-lab", "sensing-city"]
+    },
+    {
+      "id": "res-03",
+      "name": "Researcher C",
+      "role": "Circular Economy",
+      "bio": "Add as many researchers as required. The visualization automatically redraws the connections.",
+      "projects": ["smart-waste"]
+    },
+    {
+      "id": "res-04",
+      "name": "Researcher D",
+      "role": "IoT & Sensing",
+      "bio": "People may participate in multiple projects.",
+      "projects": ["urban-water-dt", "sensing-city"]
+    },
+    {
+      "id": "res-05",
+      "name": "Researcher E",
+      "role": "Mobility",
+      "bio": "Use the projects array to define the network relationship.",
+      "projects": ["mobility-lab"]
+    },
+    {
+      "id": "res-06",
+      "name": "Researcher F",
+      "role": "Data Visualization",
+      "bio": "Hovering this researcher highlights only connected projects.",
+      "projects": ["urban-water-dt", "smart-waste", "mobility-lab", "sensing-city"]
+    }
+  ],
+  "projects": [
+    {
+      "id": "urban-water-dt",
+      "name": "Urban Water Digital Twin",
+      "year": 2026,
+      "status": "ongoing",
+      "summary": "A sample project record for a digital-twin research programme.",
+      "tags": ["Digital Twin", "IoT", "Urban Systems"],
+      "url": ""
+    },
+    {
+      "id": "smart-waste",
+      "name": "Smart Waste",
+      "year": 2026,
+      "status": "ongoing",
+      "summary": "A sample circular-economy and smart waste research project.",
+      "tags": ["Circular Economy", "Waste", "Smart City"],
+      "url": ""
+    },
+    {
+      "id": "mobility-lab",
+      "name": "Urban Mobility Lab",
+      "year": 2026,
+      "status": "ongoing",
+      "summary": "A sample project exploring data-driven urban mobility.",
+      "tags": ["Mobility", "Transport", "Data"],
+      "url": ""
+    },
+    {
+      "id": "sensing-city",
+      "name": "Sensing City",
+      "year": 2026,
+      "status": "ongoing",
+      "summary": "A sample sensing project connecting field devices, urban data, and visualization.",
+      "tags": ["Sensors", "Urban Analytics", "Visualization"],
+      "url": ""
+    }
+  ]
+}
